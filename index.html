@@ -195,6 +195,11 @@ textarea{resize:vertical;min-height:64px;line-height:1.5}
 .bprev.loading::after{border-color:var(--golddim);border-top-color:transparent}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* PREVIEW SKELETON */
+.pskel{display:flex;flex-direction:column;gap:12px;padding:28px 32px;height:100%}
+.pskel-bar{border-radius:6px;background:linear-gradient(90deg,var(--cream3) 25%,var(--parch) 50%,var(--cream3) 75%);background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
 .cta-row{display:flex;gap:10px;margin-top:14px}
 
 /* INVOICE NO — display widget */
@@ -268,9 +273,9 @@ textarea{resize:vertical;min-height:64px;line-height:1.5}
     <div class="bpipe"></div>
     <span class="bsub">Receipt Manager</span>
   </div>
-  <div class="ep-pill" id="epPill" onclick="openModal()">
+  <div class="ep-pill set" id="epPill" onclick="openModal()" style="display:none">
     <div class="ep-dot"></div>
-    <span id="epLabel">Set GAS Endpoint</span>
+    <span id="epLabel">Connected ✓</span>
   </div>
 </header>
 
@@ -547,6 +552,18 @@ textarea{resize:vertical;min-height:64px;line-height:1.5}
         <div class="pehint">Fill the form and click <strong>Preview</strong><br>to see the live rendered acknowledgment receipt</div>
       </div>
       <iframe id="pframe" class="pframe" style="display:none"></iframe>
+      <div id="pskeleton" style="display:none">
+        <div class="pskel">
+          <div class="pskel-bar" style="height:60px;width:100%"></div>
+          <div class="pskel-bar" style="height:16px;width:60%"></div>
+          <div class="pskel-bar" style="height:80px;width:100%"></div>
+          <div class="pskel-bar" style="height:12px;width:40%"></div>
+          <div class="pskel-bar" style="height:12px;width:80%"></div>
+          <div class="pskel-bar" style="height:12px;width:65%"></div>
+          <div class="pskel-bar" style="height:40px;width:100%"></div>
+          <div class="pskel-bar" style="height:60px;width:100%"></div>
+        </div>
+      </div>
     </div>
     <div class="lbody" id="lPane">
       <div class="lempty" id="lempty">Configure the GAS endpoint to load the receipt log.</div>
@@ -572,11 +589,12 @@ textarea{resize:vertical;min-height:64px;line-height:1.5}
 
 <script>
 /* ── State ── */
-var S={type:'booking',ep:localStorage.getItem('cas_ep')||'',items:[],_sub:0,_disc:0,_tot:0,_paid:0,_due:0,_dep:50};
+var GAS_URL='https://script.google.com/macros/s/AKfycbxRbk3x-QIRS3bgOGcyn6WflG3s-qbPUpMdJ6qcX2Esa0AtFlp5_bEHsfAqnzpI4Fwp/exec';
+var S={type:'booking',ep:localStorage.getItem('cas_ep')||GAS_URL,items:[],_sub:0,_disc:0,_tot:0,_paid:0,_due:0,_dep:50};
 
 /* ── Type metadata ── */
 var TMETA={
-  booking:{banner:'<strong>Booking Acknowledgment Receipt</strong> &mdash; Dates auto-fill accommodation at the correct tier rate. Discount tier auto-selects from nights. <em>This is not an Official Receipt.</em>',stay:'Stay Details',urgency:true,
+  booking:{banner:'<strong>Booking Acknowledgment Receipt</strong> &mdash; Dates auto-fill accommodation at the correct tier rate. Discount tier auto-selects from nights.',stay:'Stay Details',urgency:true,
     notes:[
       {l:'Deposit reminder',t:'To confirm your reservation, please send the 50% deposit via GCash or bank transfer. Dates will be blocked upon receipt.'},
       {l:'Warm welcome',t:'We are so excited to welcome you to Cascade Hideaway! Your studio will be freshly prepared and waiting for your arrival.'},
@@ -585,14 +603,14 @@ var TMETA={
       {l:'Date hold notice',t:'Your dates are tentatively held for 24 hours. Please settle the deposit within this period to secure your reservation.'},
       {l:'Airbnb redirect',t:'You may also pay through the Airbnb platform directly if you prefer. Let us know once payment is completed and we will confirm your booking.'}
     ]},
-  extension:{banner:'<strong>Extension Acknowledgment Receipt</strong> &mdash; Update the dates; extra nights are auto-calculated at the current nightly rate. <em>This is not an Official Receipt.</em>',stay:'Extended Stay',urgency:false,
+  extension:{banner:'<strong>Extension Acknowledgment Receipt</strong> &mdash; Update the dates; extra nights are auto-calculated at the current nightly rate.',stay:'Extended Stay',urgency:false,
     notes:[
       {l:'Extension confirmed',t:'Wonderful! We have extended your reservation. Please arrange payment for the additional nights at check-out.'},
       {l:'All set',t:'Your extended stay is confirmed. Enjoy every extra moment at Cascade Hideaway \u2014 we are thrilled to have you stay longer!'},
       {l:'Late checkout note',t:'Your extended rate applies from your original check-out date. Please note that check-out for the extended period is at 12:00 NN unless otherwise arranged.'},
       {l:'Housekeeping notice',t:'We will schedule a mid-stay refresh for your unit. Please let us know a convenient time and we will arrange it around your schedule.'}
     ]},
-  service:{banner:'<strong>Services Acknowledgment Receipt</strong> &mdash; Use the quick-fill chips or add custom line items. Great for transfers, F&amp;B, or one-off requests. <em>This is not an Official Receipt.</em>',stay:'Stay Reference',urgency:false,
+  service:{banner:'<strong>Services Acknowledgment Receipt</strong> &mdash; Use the quick-fill chips or add custom line items. Great for transfers, F&amp;B, or one-off requests.',stay:'Stay Reference',urgency:false,
     notes:[
       {l:'Settlement',t:'Please settle the balance below upon check-out. We accept GCash, Maya, cash, or bank transfer.'},
       {l:'Complimentary note',t:'Some items on this receipt are complimentary \u2014 our way of saying thank you for choosing Cascade Hideaway!'},
@@ -600,7 +618,7 @@ var TMETA={
       {l:'Itemized note',t:'Please review the items listed below. If you have any questions or corrections, do not hesitate to message us before settling.'},
       {l:'On-account note',t:'These charges have been added to your account and will be settled at check-out. No action needed at this time.'}
     ]},
-  refund:{banner:'<strong>Refund Notice</strong> &mdash; Document the refund amount, method, and reason. A copy goes to the guest automatically. <em>This is not an Official Receipt.</em>',stay:'Original Stay',urgency:false,
+  refund:{banner:'<strong>Refund Notice</strong> &mdash; Document the refund amount, method, and reason. A copy goes to the guest automatically.',stay:'Original Stay',urgency:false,
     notes:[
       {l:'Standard refund',t:'Your refund will be processed to your original payment method within 3\u20135 business days. Please do not hesitate to reach out if you have any concerns.'},
       {l:'Policy note',t:'Per our cancellation policy, a full refund applies for cancellations received 7 or more days before check-in. We hope to welcome you another time.'},
@@ -721,6 +739,7 @@ function setType(tab){
   document.querySelectorAll('.ttab').forEach(function(t){t.classList.remove('active')});
   tab.classList.add('active');
   S.type=tab.dataset.type;
+  _previewCache={key:'',html:''};
   applyTypeMeta();
   recalc();
 }
@@ -961,25 +980,55 @@ function mkErr(el,msg){el.classList.add('err');toast(msg,'error');el.focus();}
 function clearErr(el){el.classList.remove('err');}
 
 /* ── Preview / Send ── */
+/* ── Preview cache ── */
+var _previewCache={key:'',html:''};
+function _cacheKey(){
+  return JSON.stringify([S.type,v('guestName'),v('checkin'),v('checkout'),
+    v('discType'),v('discCustom'),v('amtPaid'),v('payMethod'),
+    S._tot,S._disc,S._paid,S.items.length,
+    S.items.map(function(i){return i.description+i.amount;}).join('|')]);
+}
+
 function doPreview(){
-  if(!S.ep){toast('Set the GAS endpoint first.','error');openModal();return;}
   if(!ok()) return;
+  var key=_cacheKey();
+  if(key===_previewCache.key&&_previewCache.html){
+    renderPrev(_previewCache.html);
+    toast('Preview ready \u2014 cached','success');
+    return;
+  }
+  document.getElementById('pempty').style.display='none';
+  document.getElementById('pframe').style.display='none';
+  document.getElementById('pskeleton').style.display='block';
+  showPane('preview',document.querySelectorAll('.ptab')[0]);
   loading('bprev',true);
   post(buildPayload('preview')).then(function(d){
     loading('bprev',false);
-    if(d.result==='success'){renderPrev(d.html);toast('Preview ready \u2014 '+d.invoiceNo,'success');}
-    else toast('Error: '+d.message,'error');
-  }).catch(function(){loading('bprev',false);toast('Network error.','error');});
+    document.getElementById('pskeleton').style.display='none';
+    if(d.result==='success'){
+      _previewCache={key:key,html:d.html};
+      renderPrev(d.html);
+      toast('Preview ready \u2014 '+d.invoiceNo,'success');
+    } else {
+      toast('Error: '+d.message,'error');
+      document.getElementById('pempty').style.display='';
+    }
+  }).catch(function(e){
+    loading('bprev',false);
+    document.getElementById('pskeleton').style.display='none';
+    document.getElementById('pempty').style.display='';
+    toast('Error: '+e.message,'error');
+  });
 }
 
 function renderPrev(html){
   document.getElementById('pempty').style.display='none';
+  document.getElementById('pskeleton').style.display='none';
   var f=document.getElementById('pframe');f.style.display='block';f.srcdoc=html;
   showPane('preview',document.querySelectorAll('.ptab')[0]);
 }
 
 function doSend(){
-  if(!S.ep){toast('Set the GAS endpoint first.','error');openModal();return;}
   if(!ok()) return;
   if(!confirm('Send acknowledgment receipt to '+v('guestName')+'?')) return;
   loading('bsend',true);
@@ -987,7 +1036,7 @@ function doSend(){
     loading('bsend',false);
     if(d.result==='success'){toast('\u2713 Sent \u2014 '+d.invoiceNo,'success');loadLog();}
     else toast('Error: '+d.message,'error');
-  }).catch(function(){loading('bsend',false);toast('Network error.','error');});
+  }).catch(function(e){loading('bsend',false);toast('Error: '+e.message,'error');});
 }
 
 /* ── Log ── */
@@ -1032,8 +1081,7 @@ function openModal(){
 }
 function closeModal(){document.getElementById('overlay').classList.remove('open');}
 function saveEp(){
-  var url=document.getElementById('murl').value.trim();
-  if(!url){toast('Paste a valid URL.','error');return;}
+  var url=document.getElementById('murl').value.trim()||GAS_URL;
   S.ep=url;localStorage.setItem('cas_ep',url);updateEpUI();closeModal();
   toast('Endpoint saved \u2713','success');loadLog();
 }
@@ -1046,7 +1094,15 @@ document.getElementById('overlay').addEventListener('click',function(e){if(e.tar
 
 /* ── Network ── */
 function post(payload){
-  return fetch(S.ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json();});
+  return fetch(S.ep,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify(payload)
+  }).then(function(r){return r.text();})
+    .then(function(t){
+      try{return JSON.parse(t);}
+      catch(e){throw new Error('Bad response: '+t.substring(0,120));}
+    });
 }
 
 /* ── Toast ── */
