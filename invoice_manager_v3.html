@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cascade · Invoice Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --cream:#f8f4ed;--cream2:#f2ece0;--cream3:#ece4d4;--parch:#e2d9c5;
+  --ink:#1c1208;--ink2:#2e2010;--ink3:#4a3520;--muted:#8a7558;--muted2:#b09870;
+  --gold:#b8862a;--goldb:#d4a040;--golddim:rgba(184,134,42,.22);--goldbg:rgba(184,134,42,.07);
+  --border:rgba(140,100,40,.18);--borderl:rgba(140,100,40,.10);
+  --red:#a83020;--redbg:rgba(168,48,32,.08);
+  --green:#2a6840;--greenbg:rgba(42,104,64,.10);
+  --shad:0 2px 20px rgba(60,30,0,.09);--shadlg:0 8px 40px rgba(60,30,0,.14);
+  --r:10px;--rl:16px;--rx:22px;
+  --ease:cubic-bezier(.25,.46,.45,.94);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px;-webkit-font-smoothing:antialiased;color-scheme:light}
+body{background:var(--cream);color:var(--ink);font-family:'DM Sans',sans-serif;min-height:100dvh;overflow-x:hidden}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:var(--cream2)}
+::-webkit-scrollbar-thumb{background:var(--parch);border-radius:3px}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(248,244,237,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);padding:0 20px;display:flex;align-items:center;justify-content:space-between;height:56px}
+.brand{display:flex;align-items:center;gap:10px}
+.bmark{width:30px;height:30px;background:var(--ink);border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.bmark svg{width:16px;height:16px;fill:var(--goldb)}
+.bname{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:400;letter-spacing:3px;text-transform:uppercase;color:var(--ink)}
+.bpipe{width:1px;height:16px;background:var(--border)}
+.bsub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.ep-pill{display:flex;align-items:center;gap:7px;padding:6px 13px;background:var(--cream2);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:all .2s;font-size:11px;font-weight:500;color:var(--muted);white-space:nowrap}
+.ep-pill:hover{border-color:var(--gold);color:var(--gold);background:var(--goldbg)}
+.ep-pill.set{color:var(--green);border-color:rgba(42,104,64,.3);background:var(--greenbg)}
+.ep-dot{width:6px;height:6px;border-radius:50%;background:var(--muted2);transition:background .2s;flex-shrink:0}
+.ep-pill.set .ep-dot{background:var(--green)}
+
+/* TYPE STRIP */
+.tstrip{background:var(--cream2);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none}
+.tstrip::-webkit-scrollbar{display:none}
+.ttab{flex:1;min-width:88px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s var(--ease)}
+.ttab .ti{font-size:16px;transition:transform .2s}
+.ttab:hover{color:var(--ink2)}
+.ttab:hover .ti{transform:scale(1.12)}
+.ttab.active{color:var(--gold);border-bottom-color:var(--gold);background:rgba(184,134,42,.05)}
+
+/* LAYOUT */
+.body{display:grid;grid-template-columns:1fr;min-height:calc(100dvh - 104px)}
+@media(min-width:960px){
+  .body{grid-template-columns:480px 1fr}
+  .fcol{height:calc(100dvh - 104px);overflow-y:auto}
+  .pcol{height:calc(100dvh - 104px)}
+}
+
+/* FORM COLUMN */
+.fcol{padding:0 0 80px}
+
+/* STAGE SYSTEM */
+.stage{border-bottom:1px solid var(--borderl);transition:opacity .3s var(--ease)}
+.stage.locked{opacity:.4;pointer-events:none}
+
+.stage-hd{display:flex;align-items:center;gap:12px;padding:15px 20px;cursor:pointer;user-select:none;transition:background .15s;min-height:60px}
+.stage-hd:hover{background:var(--goldbg)}
+.stage.locked .stage-hd{cursor:not-allowed}
+.stage.locked .stage-hd:hover{background:none}
+
+.stage-num{width:27px;height:27px;border-radius:50%;background:var(--cream3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--muted);flex-shrink:0;transition:all .25s var(--ease)}
+.stage.done .stage-num{background:var(--green);border-color:var(--green);color:#fff;font-size:13px}
+.stage.active .stage-num{background:var(--ink);border-color:var(--ink);color:var(--goldb)}
+
+.stage-meta{flex:1;min-width:0}
+.stage-title{font-size:11px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);transition:color .2s}
+.stage.active .stage-title{color:var(--ink2)}
+.stage.done .stage-title{color:var(--green)}
+
+.stage-summary{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-height:0;opacity:0;transition:max-height .3s var(--ease),opacity .25s}
+.stage.done .stage-summary{max-height:20px;opacity:1}
+
+.stage-chevron{font-size:18px;color:var(--muted2);transition:transform .25s var(--ease),color .2s;flex-shrink:0;line-height:1}
+.stage.active .stage-chevron{transform:rotate(90deg);color:var(--gold)}
+.stage.done .stage-chevron{color:var(--green)}
+
+.stage-body{overflow:hidden;max-height:0;opacity:0;transition:max-height .4s var(--ease),opacity .3s}
+.stage-body.open{max-height:3000px;opacity:1}
+
+.stage-inner{padding:2px 20px 20px}
+
+/* SMART BANNER */
+.sbanner{background:var(--goldbg);border:1px solid var(--golddim);border-radius:var(--r);padding:10px 13px;margin-bottom:14px;display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--ink3);line-height:1.55}
+.sbanner .sbi{font-size:14px;flex-shrink:0;margin-top:1px}
+
+/* URGENCY */
+.urgency{background:linear-gradient(135deg,#1c1208,#2e1a08);border-radius:var(--r);padding:10px 14px;margin-bottom:13px;display:flex;align-items:center;gap:10px}
+.urgency.hidden{display:none}
+.ui{font-size:16px;flex-shrink:0}
+.ut{font-size:11.5px;color:#e8dfc8;line-height:1.5}
+.ut strong{color:#d4a040}
+
+/* SECTION LABELS */
+.sec{font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--muted);padding:16px 0 8px;display:flex;align-items:center;gap:10px}
+.sec::after{content:'';flex:1;height:1px;background:var(--borderl)}
+.sec:first-child{padding-top:0}
+
+/* FIELDS */
+.field{margin-bottom:12px}
+.field label{display:block;font-size:10px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.hint{font-size:10px;color:var(--muted2);margin-top:4px;font-style:italic}
+input,textarea,select{width:100%;padding:10px 12px;background:#fff;border:1px solid var(--border);border-radius:var(--r);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s,box-shadow .2s;-webkit-appearance:none;appearance:none}
+input:focus,textarea:focus,select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,134,42,.10)}
+input::placeholder,textarea::placeholder{color:var(--muted2);font-weight:300}
+input.calc{background:var(--goldbg);border-color:var(--golddim);color:var(--ink2);font-weight:600;cursor:default}
+input.err{border-color:var(--red);box-shadow:0 0 0 3px var(--redbg)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23b09870'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;cursor:pointer}
+textarea{resize:vertical;min-height:64px;line-height:1.5}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.r3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+
+/* CHIPS */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{padding:5px 11px;border-radius:20px;background:var(--cream3);border:1px solid var(--border);font-size:11px;font-weight:500;color:var(--ink3);cursor:pointer;transition:all .18s;white-space:nowrap}
+.chip:hover{background:var(--goldbg);border-color:var(--golddim);color:var(--gold)}
+
+/* RATE BADGE */
+.rbadge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;margin-bottom:10px;background:var(--ink);border-radius:20px;font-size:11px;font-weight:500;color:var(--goldb);letter-spacing:.5px}
+.rbd{width:4px;height:4px;border-radius:50%;background:var(--goldb);opacity:.6}
+
+/* ITEMS TABLE */
+.iwrap{overflow-x:auto;margin-bottom:10px;-webkit-overflow-scrolling:touch}
+.itbl{width:100%;border-collapse:collapse;min-width:360px}
+.itbl thead th{font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 5px 7px;border-bottom:1px solid var(--border);text-align:left;font-family:'DM Sans',sans-serif}
+.itbl thead th.tar{text-align:right}
+.itbl td{padding:4px 5px;vertical-align:middle}
+.itbl td input{padding:7px 8px;font-size:12px;border-radius:7px}
+.cdesc{width:42%}.cqty{width:11%}.cunit{width:22%}.camt{width:20%}.cdel{width:5%}
+.cella{text-align:right;font-size:12px;font-weight:600;color:var(--gold);white-space:nowrap}
+.bdel{background:none;border:none;cursor:pointer;color:var(--muted2);font-size:16px;line-height:1;padding:4px;border-radius:5px;transition:color .15s,background .15s}
+.bdel:hover{color:var(--red);background:var(--redbg)}
+.badd{width:100%;padding:8px;background:none;border:1px dashed var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-weight:500;letter-spacing:1px;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px}
+.badd:hover{border-color:var(--golddim);color:var(--gold);background:var(--goldbg)}
+
+/* TOTALS */
+.tcrd{background:#fff;border:1px solid var(--border);border-radius:var(--rl);padding:15px 17px;margin:12px 0;box-shadow:var(--shad)}
+.tr{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;color:var(--ink3)}
+.tr .tv{font-weight:500}
+.tr.struck .tl{text-decoration:line-through;color:var(--muted)}
+.tr.struck .tv{color:var(--red);font-size:12px}
+.tr.tmain{border-top:1px solid var(--border);margin-top:7px;padding-top:12px;font-size:17px;font-weight:600;color:var(--ink)}
+.tr.tmain .tv{color:var(--gold)}
+.tr.tdue .tv{color:var(--red);font-weight:600}
+.tr.tpaid .tv{color:var(--green)}
+
+/* METER */
+.meter{margin:8px 0 3px}
+.mlbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:5px}
+.mtrack{height:5px;background:var(--cream3);border-radius:3px;overflow:hidden}
+.mfill{height:100%;background:linear-gradient(90deg,var(--green),var(--goldb));border-radius:3px;transition:width .4s var(--ease)}
+
+/* SAVINGS PILL */
+.spill{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:var(--greenbg);border:1px solid rgba(42,104,64,.2);font-size:11px;font-weight:600;color:var(--green);margin-top:5px;transition:all .3s}
+.spill.hide{opacity:0;pointer-events:none}
+
+/* PAY PRESETS */
+.ppre{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.pp{padding:6px 12px;border-radius:20px;background:var(--cream3);border:1px solid var(--border);font-size:11px;font-weight:500;color:var(--ink3);cursor:pointer;transition:all .18s}
+.pp:hover{background:var(--goldbg);border-color:var(--golddim);color:var(--gold)}
+.pp.active{background:var(--gold);border-color:var(--gold);color:#fff}
+
+/* NOTE TEMPLATES */
+.ntpls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.ntpl{padding:4px 10px;border-radius:6px;background:var(--cream3);border:1px solid var(--borderl);font-size:10px;color:var(--muted);cursor:pointer;transition:all .15s}
+.ntpl:hover{background:var(--goldbg);color:var(--gold);border-color:var(--golddim)}
+
+/* REFUND */
+.rblock{display:none}
+.rblock.vis{display:block}
+
+/* CONTINUE BUTTON */
+.btn-cont{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:var(--ink);color:var(--goldb);border:none;border-radius:var(--r);font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;cursor:pointer;transition:all .2s var(--ease);margin-top:8px}
+.btn-cont:hover{background:var(--ink2);transform:translateY(-1px);box-shadow:0 4px 14px rgba(28,18,8,.22)}
+
+/* ACTION BUTTONS */
+.btn{flex:1;padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;border-radius:var(--r);border:none;cursor:pointer;transition:all .2s var(--ease)}
+.bprev{background:var(--cream3);border:1px solid var(--border);color:var(--ink2)}
+.bprev:hover{background:var(--parch)}
+.bsend{background:var(--ink);color:var(--goldb);box-shadow:0 4px 16px rgba(28,18,8,.22)}
+.bsend:hover{background:var(--ink2);transform:translateY(-1px);box-shadow:0 6px 20px rgba(28,18,8,.28)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.btn.loading{position:relative;color:transparent!important}
+.btn.loading::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;border:2px solid currentColor;border-top-color:transparent;top:50%;left:50%;margin:-6.5px 0 0 -6.5px;animation:spin .7s linear infinite}
+.bsend.loading::after{border-color:rgba(232,192,80,.4);border-top-color:transparent}
+.bprev.loading::after{border-color:var(--golddim);border-top-color:transparent}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.cta-row{display:flex;gap:10px;margin-top:14px}
+
+/* INVOICE NO — display widget */
+.inv-meta{margin-top:14px;padding-top:13px;border-top:1px solid var(--borderl)}
+.invno-display{display:flex;align-items:center;gap:8px;background:var(--goldbg);border:1px solid var(--golddim);border-radius:var(--r);padding:9px 13px}
+.invno-val{font-family:'Cormorant Garamond',serif;font-size:15px;font-weight:600;color:var(--ink2);letter-spacing:1px;flex:1}
+.invno-edit-btn,.invno-clear-btn{background:none;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:6px;transition:all .15s;font-family:'DM Sans',sans-serif}
+.invno-edit-btn{color:var(--gold)}
+.invno-edit-btn:hover{background:var(--golddim);color:var(--ink2)}
+.invno-clear-btn{color:var(--muted2)}
+.invno-clear-btn:hover{background:var(--redbg);color:var(--red)}
+/* REMOVE DISCOUNT BUTTON */
+.bdisc-remove{background:none;border:none;cursor:pointer;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted2);padding:4px 9px;border-radius:6px;transition:all .15s;font-family:'DM Sans',sans-serif;margin-left:6px}
+.bdisc-remove:hover{background:var(--redbg);color:var(--red)}
+
+/* PREVIEW COL */
+.pcol{display:flex;flex-direction:column;background:var(--cream2);border-left:1px solid var(--border)}
+.ptabs{display:flex;background:var(--cream);border-bottom:1px solid var(--border)}
+.ptab{padding:12px 20px;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+.ptab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.pbody{flex:1;overflow:hidden;position:relative}
+.pframe{width:100%;height:100%;border:none;background:#ede5d5}
+.pempty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--muted);padding:40px}
+.peicon{font-size:40px;opacity:.2}
+.petxt{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;font-style:italic;color:var(--muted);text-align:center}
+.pehint{font-size:11px;text-align:center;line-height:1.8;color:var(--muted2)}
+
+/* LOG */
+.lbody{flex:1;overflow-y:auto;padding:18px;display:none}
+.lbody.vis{display:block}
+.lempty{text-align:center;color:var(--muted2);font-size:12px;padding:36px 20px}
+.lcard{background:#fff;border:1px solid var(--borderl);border-radius:var(--rl);padding:13px 16px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;box-shadow:0 1px 6px rgba(60,30,0,.05);transition:box-shadow .2s}
+.lcard:hover{box-shadow:var(--shad)}
+.lcno{font-size:11px;font-weight:600;color:var(--gold);margin-bottom:3px}
+.lcname{font-size:13px;font-weight:500;color:var(--ink)}
+.lcmeta{font-size:11px;color:var(--muted);margin-top:2px}
+.lstat{font-size:9px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.lstat.pending{background:var(--redbg);color:var(--red);border:1px solid rgba(168,48,32,.2)}
+.lstat.settled{background:var(--greenbg);color:var(--green);border:1px solid rgba(42,104,64,.2)}
+.brsend{background:var(--cream2);border:1px solid var(--border);color:var(--ink3);border-radius:7px;font-size:10px;font-weight:600;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all .18s;text-transform:uppercase;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.brsend:hover{background:var(--goldbg);border-color:var(--golddim);color:var(--gold)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);border-radius:30px;padding:10px 20px;font-size:12px;font-weight:500;color:var(--cream);box-shadow:var(--shadlg);transition:transform .3s var(--ease),opacity .3s;opacity:0;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+.toast.success{color:var(--goldb)}
+.toast.error{background:var(--red);color:#fff}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(28,18,8,.55);backdrop-filter:blur(5px);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--cream);border:1px solid var(--border);border-radius:var(--rx);padding:28px 24px;width:min(460px,92vw);box-shadow:var(--shadlg)}
+.mtitle{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--ink);margin-bottom:4px}
+.msub{font-size:12px;color:var(--muted);margin-bottom:18px;line-height:1.55}
+.modal input{margin-bottom:14px}
+.mbtns{display:flex;gap:10px}
+.mbtn{flex:1;padding:11px;border-radius:var(--r);font-size:12px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif;border:none}
+.mbtn-save{background:var(--ink);color:var(--goldb)}
+.mbtn-cancel{background:var(--cream3);color:var(--muted);border:1px solid var(--border)}
+
+@media(max-width:959px){.pcol{min-height:480px}.pframe{height:440px}}
+@media(max-width:479px){.r2{grid-template-columns:1fr}.r3{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="bmark"><svg viewBox="0 0 20 20"><path d="M10 2L3 7v11h5v-5h4v5h5V7z"/></svg></div>
+    <span class="bname">Cascade</span>
+    <div class="bpipe"></div>
+    <span class="bsub">Invoice Manager</span>
+  </div>
+  <div class="ep-pill" id="epPill" onclick="openModal()">
+    <div class="ep-dot"></div>
+    <span id="epLabel">Set GAS Endpoint</span>
+  </div>
+</header>
+
+<nav class="tstrip">
+  <button class="ttab active" data-type="booking"   onclick="setType(this)"><span class="ti">🏠</span>Booking</button>
+  <button class="ttab"        data-type="extension" onclick="setType(this)"><span class="ti">📅</span>Extension</button>
+  <button class="ttab"        data-type="service"   onclick="setType(this)"><span class="ti">📋</span>Services</button>
+  <button class="ttab"        data-type="refund"    onclick="setType(this)"><span class="ti">💰</span>Refund</button>
+</nav>
+
+<div class="body">
+
+  <section class="fcol">
+
+    <!-- ══ STAGE 1: GUEST ══ -->
+    <div class="stage active" id="stage1">
+      <div class="stage-hd" onclick="toggleStage(1)">
+        <div class="stage-num" id="sn1">1</div>
+        <div class="stage-meta">
+          <div class="stage-title">Guest</div>
+          <div class="stage-summary" id="s1sum"></div>
+        </div>
+        <span class="stage-chevron">›</span>
+      </div>
+      <div class="stage-body open" id="sb1">
+        <div class="stage-inner">
+
+          <div class="sbanner" id="sbanner">
+            <div class="sbi">💡</div>
+            <div id="sbtxt">Select an invoice type above, then fill in the guest details to begin.</div>
+          </div>
+          <div class="urgency hidden" id="urgency">
+            <div class="ui">🔒</div>
+            <div class="ut"><strong>Reservation Pending</strong> — Share this invoice promptly so the guest can deposit and lock in the dates.</div>
+          </div>
+
+          <div class="field">
+            <label>Full Name *</label>
+            <input id="guestName" type="text" placeholder="e.g. Maria Santos" oninput="clearErr(this);updateS1Summary()">
+          </div>
+          <div class="r2">
+            <div class="field">
+              <label>Email *</label>
+              <input id="guestEmail" type="email" placeholder="guest@email.com" oninput="clearErr(this);updateS1Summary()">
+            </div>
+            <div class="field">
+              <label>Phone</label>
+              <input id="guestPhone" type="text" placeholder="09xx xxx xxxx">
+            </div>
+          </div>
+
+          <button class="btn-cont" onclick="advanceToStage2()">Continue to Stay &amp; Items ›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STAGE 2: STAY & ITEMS ══ -->
+    <div class="stage locked" id="stage2">
+      <div class="stage-hd" onclick="toggleStage(2)">
+        <div class="stage-num" id="sn2">2</div>
+        <div class="stage-meta">
+          <div class="stage-title">Stay &amp; Items</div>
+          <div class="stage-summary" id="s2sum"></div>
+        </div>
+        <span class="stage-chevron">›</span>
+      </div>
+      <div class="stage-body" id="sb2">
+        <div class="stage-inner">
+
+          <div class="sec" id="stayLbl">Stay Details</div>
+          <div class="r3">
+            <div class="field">
+              <label>Check-in</label>
+              <input id="checkin" type="date" onchange="onDateChange()">
+            </div>
+            <div class="field">
+              <label>Check-out</label>
+              <input id="checkout" type="date" onchange="onDateChange()">
+            </div>
+            <div class="field">
+              <label>Nights</label>
+              <input id="nights" class="calc" type="text" readonly placeholder="auto">
+              <div class="hint" id="nhint"></div>
+            </div>
+          </div>
+          <div class="rbadge" id="rbadge">
+            <div class="rbd"></div>
+            <span id="rbadgeTxt">&#8369;1,780 / night &middot; Cascade Hideaway Studio</span>
+          </div>
+
+          <div class="sec">Items &amp; Services</div>
+          <div class="chips" id="qchips">
+            <div class="chip" onclick="addP('accommodation')">🏠 Accommodation</div>
+            <div class="chip" onclick="addP('transfer')">🚗 Airport Transfer</div>
+            <div class="chip" onclick="addP('breakfast')">☕ Breakfast</div>
+            <div class="chip" onclick="addP('lateco')">🕛 Late Check-out</div>
+            <div class="chip" id="chipMidstay" style="display:none" onclick="addP('clean')">🛏 Mid-stay Clean</div>
+            <div class="chip" onclick="addP('extclean')">🧹 Extra Cleaning</div>
+            <div class="chip" onclick="addP('custom')">+ Custom</div>
+          </div>
+          <div class="iwrap">
+            <table class="itbl">
+              <thead><tr>
+                <th class="cdesc">Description</th>
+                <th class="cqty">Qty</th>
+                <th class="cunit">Unit &#8369;</th>
+                <th class="camt tar">Amount</th>
+                <th class="cdel"></th>
+              </tr></thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+          <button class="badd" onclick="addRow()">&#xFF0B; Add Line Item</button>
+
+          <div class="sec" style="justify-content:flex-start;gap:6px">Discount<button class="bdisc-remove" id="bdiscRemove" style="display:none" onclick="removeDiscount()">&#215; Remove</button><span style="flex:1;height:1px;background:var(--borderl);display:block"></span></div>
+          <div class="r2">
+            <div class="field">
+              <label>Discount Type</label>
+              <select id="discType" onchange="onDiscChange()">
+                <option value="">None / Manual</option>
+                <option value="short">Short Stay &#8212; 1 night (5%)</option>
+                <option value="ext24">Extended &#8212; 2&#8211;4 nights (8%)</option>
+                <option value="week56">Week-ish &#8212; 5&#8211;6 nights (12%)</option>
+                <option value="weekly">Weekly &#8212; 7&#8211;13 nights (14%)</option>
+                <option value="fortnight">Fortnightly &#8212; 14&#8211;27 nights (16%)</option>
+                <option value="monthly">Monthly &#8212; 28+ nights (18%)</option>
+                <option value="custom">Custom Amount</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Discount Label</label>
+              <input id="discLabel" type="text" placeholder="Shown on invoice" oninput="recalc()">
+            </div>
+          </div>
+          <div class="field" id="custDiscFld" style="display:none">
+            <label>Custom Discount (&#8369;)</label>
+            <input id="discCustom" type="number" min="0" placeholder="0" oninput="recalc()">
+          </div>
+          <div class="spill hide" id="spill">&#127881; Guest saves <span id="samt">&#8369;0</span></div>
+
+          <div class="tcrd">
+            <div class="tr" id="rsub" style="display:none">
+              <span class="tl">Subtotal</span><span class="tv" id="vsub">&#8369;0.00</span>
+            </div>
+            <div class="tr struck" id="rdisc" style="display:none">
+              <span class="tl" id="ldisc">Discount</span><span class="tv" id="vdisc">&#8722;&#8369;0.00</span>
+            </div>
+            <div class="tr" id="rpn" style="display:none">
+              <span class="tl" style="color:var(--muted);font-size:11px"><span id="vnrate">&#8369;1,780</span> &times; <span id="vnm">0</span> nights</span>
+              <span class="tv" style="color:var(--muted);font-size:12px" id="vnmbk">&#8212;</span>
+            </div>
+            <div class="tr tmain">
+              <span>Total</span><span class="tv" id="vtot">&#8369;0.00</span>
+            </div>
+          </div>
+
+          <button class="btn-cont" onclick="advanceToStage3()">Continue to Payment ›</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ STAGE 3: PAYMENT & SEND ══ -->
+    <div class="stage locked" id="stage3">
+      <div class="stage-hd" onclick="toggleStage(3)">
+        <div class="stage-num" id="sn3">3</div>
+        <div class="stage-meta">
+          <div class="stage-title">Payment &amp; Send</div>
+          <div class="stage-summary" id="s3sum"></div>
+        </div>
+        <span class="stage-chevron">›</span>
+      </div>
+      <div class="stage-body" id="sb3">
+        <div class="stage-inner">
+
+          <div class="ppre" id="ppre">
+            <div class="pp active" data-pct="50"  onclick="setDep(this,50)">50% Deposit</div>
+            <div class="pp"        data-pct="100" onclick="setDep(this,100)">Full Payment</div>
+            <div class="pp"        data-pct="0"   onclick="setDep(this,0)">No Deposit Yet</div>
+            <div class="pp"        data-pct="c"   onclick="setDep(this,'c')">Custom</div>
+          </div>
+          <div class="r2">
+            <div class="field">
+              <label>Amount Paid (&#8369;)</label>
+              <input id="amtPaid" type="number" min="0" placeholder="0" oninput="onPaidInp()">
+            </div>
+            <div class="field">
+              <label>Payment Method</label>
+              <select id="payMethod" onchange="recalc()">
+                <option value="">Select</option>
+                <option value="GCash">GCash</option>
+                <option value="Maya">Maya</option>
+                <option value="BDO Transfer">BDO Transfer</option>
+                <option value="BPI Transfer">BPI Transfer</option>
+                <option value="Cash">Cash on check-in</option>
+                <option value="Airbnb">Via Airbnb</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Payment summary (shows after paid is entered) -->
+          <div class="tcrd" id="paycrd" style="display:none">
+            <div class="meter" id="mwrap" style="display:none">
+              <div class="mlbl"><span>Deposit paid</span><span id="mpct">0%</span></div>
+              <div class="mtrack"><div class="mfill" id="mfill" style="width:0%"></div></div>
+            </div>
+            <div class="tr tpaid" id="rpaid" style="display:none">
+              <span class="tl" id="lpaid">Amount Paid</span>
+              <span class="tv" id="vpaid">&#8369;0.00</span>
+            </div>
+            <div class="tr tdue" id="rdue" style="display:none">
+              <span class="tl" id="ldue">Balance Due</span>
+              <span class="tv" id="vdue">&#8369;0.00</span>
+            </div>
+          </div>
+
+          <!-- Refund block -->
+          <div class="rblock" id="rblock">
+            <div class="sec">Refund Details</div>
+            <div class="r2">
+              <div class="field">
+                <label>Refund Amount (&#8369;)</label>
+                <input id="refAmt" type="number" min="0" placeholder="0" oninput="recalc()">
+              </div>
+              <div class="field">
+                <label>Refund Method</label>
+                <input id="refMethod" type="text" placeholder="GCash &#8212; 3&#8211;5 business days">
+              </div>
+            </div>
+            <div class="field">
+              <label>Reason</label>
+              <input id="refReason" type="text" placeholder="Free cancellation &#8212; 7+ days notice">
+            </div>
+          </div>
+
+          <div class="sec">Guest Note</div>
+          <div class="ntpls" id="ntpls"></div>
+          <div class="field">
+            <textarea id="notes" placeholder="Personal message to the guest..."></textarea>
+          </div>
+
+          <div class="inv-meta">
+            <div class="field">
+              <label style="color:var(--muted2);display:flex;align-items:center;gap:6px">Invoice No. <span style="font-weight:300;text-transform:none;letter-spacing:0;font-size:10px">(auto-generated)</span></label>
+              <div class="invno-display" id="invnoDisplay">
+                <span class="invno-val" id="invnoVal">—</span>
+                <button class="invno-edit-btn" onclick="editInvNo()">Edit</button>
+                <button class="invno-clear-btn" id="invnoClearBtn" onclick="clearInvNo()" style="display:none" title="Revert to auto">&#215;</button>
+              </div>
+              <input id="invNo" type="text" placeholder="CAS-YYYYMMDD-NNN" style="display:none;margin-top:6px" oninput="onInvNoInput()">
+            </div>
+          </div>
+
+          <div class="cta-row">
+            <button class="btn bprev" id="bprev" onclick="doPreview()">Preview</button>
+            <button class="btn bsend" id="bsend" onclick="doSend()">Send to Guest</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- PREVIEW COLUMN -->
+  <section class="pcol">
+    <div class="ptabs">
+      <button class="ptab active" onclick="showPane('preview',this)">Preview</button>
+      <button class="ptab"        onclick="showPane('log',this)">Invoice Log</button>
+    </div>
+    <div class="pbody" id="pPane">
+      <div class="pempty" id="pempty">
+        <div class="peicon">&#10022;</div>
+        <div class="petxt">Your invoice preview appears here</div>
+        <div class="pehint">Fill the form and click <strong>Preview</strong><br>to see the live rendered invoice</div>
+      </div>
+      <iframe id="pframe" class="pframe" style="display:none"></iframe>
+    </div>
+    <div class="lbody" id="lPane">
+      <div class="lempty" id="lempty">Configure the GAS endpoint to load the invoice log.</div>
+      <div id="lcards"></div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="mtitle">GAS Endpoint</div>
+    <div class="msub">Paste the deployment URL of your standalone Cascade Invoice Engine. Stored only in this browser.</div>
+    <input id="murl" type="url" placeholder="https://script.google.com/macros/s/&#8230;/exec">
+    <div class="mbtns">
+      <button class="mbtn mbtn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="mbtn mbtn-save"   onclick="saveEp()">Save &amp; Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── State ── */
+var S={type:'booking',ep:localStorage.getItem('cas_ep')||'',items:[],_sub:0,_disc:0,_tot:0,_paid:0,_due:0,_dep:50};
+
+/* ── Type metadata ── */
+var TMETA={
+  booking:{banner:'<strong>Booking Confirmation</strong> &mdash; Dates auto-fill accommodation at the correct tier rate (5%&ndash;18% off base). Discount tier auto-selects from nights.',stay:'Stay Details',urgency:true,
+    notes:[
+      {l:'Deposit reminder',t:'To confirm your reservation, please send the 50% deposit via GCash or bank transfer. Dates will be blocked upon receipt.'},
+      {l:'Warm welcome',t:'We are so excited to welcome you to Cascade Hideaway! Your studio will be freshly prepared and waiting for your arrival.'},
+      {l:'Early bird',t:'Thank you for booking early! Your rate is locked in \u2014 no changes, ever.'},
+      {l:'GCash details',t:'Please send your deposit to GCash 09XX-XXX-XXXX (Cascade Reservations). Include your name and check-in date in the message, then send us a screenshot to confirm.'},
+      {l:'Date hold notice',t:'Your dates are tentatively held for 24 hours. Please settle the deposit within this period to secure your reservation.'},
+      {l:'Airbnb redirect',t:'You may also pay through the Airbnb platform directly if you prefer. Let us know once payment is completed and we will confirm your booking.'}
+    ]},
+  extension:{banner:'<strong>Stay Extension</strong> &mdash; Update the dates; the extra nights are auto-calculated at the current nightly rate.',stay:'Extended Stay',urgency:false,
+    notes:[
+      {l:'Extension confirmed',t:'Wonderful! We have extended your reservation. Please arrange payment for the additional nights at check-out.'},
+      {l:'All set',t:'Your extended stay is confirmed. Enjoy every extra moment at Cascade Hideaway \u2014 we are thrilled to have you stay longer!'},
+      {l:'Late checkout note',t:'Your extended rate applies from your original check-out date. Please note that check-out for the extended period is at 12:00 NN unless otherwise arranged.'},
+      {l:'Housekeeping notice',t:'We will schedule a mid-stay refresh for your unit. Please let us know a convenient time and we will arrange it around your schedule.'}
+    ]},
+  service:{banner:'<strong>Additional Services</strong> &mdash; Use the quick-fill chips or add custom line items. Great for transfers, F&amp;B, or one-off requests.',stay:'Stay Reference',urgency:false,
+    notes:[
+      {l:'Settlement',t:'Please settle the balance below upon check-out. We accept GCash, Maya, cash, or bank transfer.'},
+      {l:'Complimentary note',t:'Some items on this invoice are complimentary \u2014 our way of saying thank you for choosing Cascade Hideaway!'},
+      {l:'Transfer reminder',t:'Your airport transfer is confirmed. Our driver will meet you at the arrival area. Please keep your phone on for coordination.'},
+      {l:'Itemized note',t:'Please review the items listed below. If you have any questions or corrections, do not hesitate to message us before settling.'},
+      {l:'On-account note',t:'These charges have been added to your account and will be settled at check-out. No action needed at this time.'}
+    ]},
+  refund:{banner:'<strong>Refund Notice</strong> &mdash; Document the refund amount, method, and reason. A copy goes to the guest automatically.',stay:'Original Stay',urgency:false,
+    notes:[
+      {l:'Standard refund',t:'Your refund will be processed to your original payment method within 3\u20135 business days. Please do not hesitate to reach out if you have any concerns.'},
+      {l:'Policy note',t:'Per our cancellation policy, a full refund applies for cancellations received 7 or more days before check-in. We hope to welcome you another time.'},
+      {l:'Partial refund',t:'A partial refund has been processed in accordance with our cancellation policy. The amount reflected above is after applicable fees.'},
+      {l:'Force majeure',t:'Due to circumstances beyond your control, we are issuing a full refund as a gesture of goodwill. We hope to host you at Cascade Hideaway soon.'},
+      {l:'Date change refund',t:'As discussed, your original deposit has been refunded. A new invoice will be issued once your revised dates are confirmed.'}
+    ]}
+};
+
+/* ── Pricing ── */
+function getRateForNights(n){
+  if(n===1)  return 1691;
+  if(n<=4)   return 1638;
+  if(n<=6)   return 1566;
+  if(n<=13)  return 1531;
+  if(n<=27)  return 1495;
+  return 1460;
+}
+
+var TIERS={
+  short:    {pct:.05,label:'Short Stay Discount (5% \u2014 1 night)'},
+  ext24:    {pct:.08,label:'Extended Stay Discount (8% \u2014 2\u20134 nights)'},
+  week56:   {pct:.12,label:'Week-ish Discount (12% \u2014 5\u20136 nights)'},
+  weekly:   {pct:.14,label:'Weekly Discount (14% \u2014 7\u201313 nights)'},
+  fortnight:{pct:.16,label:'Fortnightly Discount (16% \u2014 14\u201327 nights)'},
+  monthly:  {pct:.18,label:'Monthly Discount (18% \u2014 28+ nights)'}
+};
+
+var PRESETS={
+  accommodation:function(){
+    var n=parseInt(document.getElementById('nights').value)||1;
+    var r=getRateForNights(n);
+    addRow('Accommodation \u2014 '+n+' night'+(n!==1?'s':'')+' \u00d7 \u20b1'+r.toLocaleString('en-PH')+'/night',1,n*r);
+  },
+  transfer:function(){addRow('Airport transfer (arrival)',1,800);},
+  breakfast:function(){addRow('Breakfast set',2,350);},
+  lateco:function(){addRow('Late check-out (until 2:00 PM)',1,500);},
+  clean:function(){addRow('Mid-stay room refresh (complimentary \u2014 every 5 days)',1,0);},
+  extclean:function(){addRow('Extra cleaning service',1,700);},
+  custom:function(){addRow('',1,'');}
+};
+function addP(k){PRESETS[k]();}
+
+/* ── Init ── */
+(function init(){
+  updateEpUI();
+  setDefaultDates();
+  addRow('',1,'');
+  recalc();
+  applyTypeMeta();
+  refreshInvNoDisplay();
+})();
+
+/* ── Stage management ── */
+function stageEl(n){return document.getElementById('stage'+n);}
+function stageBody(n){return document.getElementById('sb'+n);}
+
+function toggleStage(n){
+  var s=stageEl(n),b=stageBody(n);
+  if(s.classList.contains('locked')) return;
+  var open=b.classList.contains('open');
+  if(open){
+    b.classList.remove('open');
+    s.classList.remove('active');
+    if(!s.classList.contains('done')) {/* keep as-is */}
+  } else {
+    b.classList.add('open');
+    s.classList.add('active');
+  }
+}
+
+function openStage(n){
+  var s=stageEl(n),b=stageBody(n);
+  s.classList.remove('locked','done');
+  s.classList.add('active');
+  b.classList.add('open');
+  setTimeout(function(){
+    var top=s.getBoundingClientRect().top+window.scrollY-70;
+    window.scrollTo({top:top,behavior:'smooth'});
+  },60);
+}
+
+function markDone(n,summary){
+  var s=stageEl(n),b=stageBody(n);
+  s.classList.remove('active','locked');
+  s.classList.add('done');
+  b.classList.remove('open');
+  document.getElementById('s'+n+'sum').textContent=summary||'';
+  // Update stage number to checkmark
+  document.getElementById('sn'+n).textContent='\u2713';
+}
+
+function advanceToStage2(){
+  var ne=document.getElementById('guestName'),ee=document.getElementById('guestEmail');
+  if(!ne.value.trim()){mkErr(ne,'Guest name required.');return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ee.value.trim())){mkErr(ee,'Valid email required.');return;}
+  markDone(1,v('guestName')+' \u00b7 '+v('guestEmail'));
+  openStage(2);
+}
+
+function advanceToStage3(){
+  recalc();
+  if(S._tot<=0&&S.type!=='refund'){toast('Add at least one priced item.','error');return;}
+  var ci=v('checkin'),co=v('checkout');
+  var sum=(ci&&co?fmtDateShort(ci)+' \u2192 '+fmtDateShort(co)+' \u00b7 ':'')+fmtP(S._tot);
+  markDone(2,sum);
+  openStage(3);
+  // Auto-apply 50% deposit
+  if(S.type!=='refund'){
+    setDepSilent(50);
+    document.getElementById('amtPaid').value=Math.round(S._tot*.5)||'';
+    recalc();
+  }
+}
+
+/* ── Type switching ── */
+function setType(tab){
+  document.querySelectorAll('.ttab').forEach(function(t){t.classList.remove('active')});
+  tab.classList.add('active');
+  S.type=tab.dataset.type;
+  applyTypeMeta();
+  recalc();
+}
+
+function applyTypeMeta(){
+  var m=TMETA[S.type];
+  document.getElementById('sbtxt').innerHTML=m.banner;
+  document.getElementById('stayLbl').textContent=m.stay;
+  document.getElementById('urgency').classList.toggle('hidden',!m.urgency);
+  document.getElementById('rblock').classList.toggle('vis',S.type==='refund');
+  document.getElementById('rbadge').style.display=S.type==='service'?'none':'';
+  document.getElementById('ppre').style.display=S.type==='refund'?'none':'';
+  var tpls=document.getElementById('ntpls');
+  tpls.innerHTML='';
+  m.notes.forEach(function(n){
+    var b=document.createElement('button');
+    b.className='ntpl';b.innerHTML=n.l;
+    b.onclick=function(){document.getElementById('notes').value=n.t;};
+    tpls.appendChild(b);
+  });
+  if(S.type==='booking'){autoFillAccomm();autoSelectTier();setDepSilent(50);}
+  if(S.type==='extension'){autoSelectTier();}
+}
+
+/* ── Summary update ── */
+function updateS1Summary(){
+  var n=v('guestName'),e=v('guestEmail');
+  document.getElementById('s1sum').textContent=n+(e?' \u00b7 '+e:'');
+}
+
+/* ── Dates ── */
+function setDefaultDates(){
+  var now=new Date(),ci=new Date(now),co=new Date(now);
+  ci.setDate(now.getDate()+1);co.setDate(now.getDate()+4);
+  document.getElementById('checkin').value=toD(ci);
+  document.getElementById('checkout').value=toD(co);
+  calcNights();
+}
+
+function onDateChange(){calcNights();autoFillAccomm();autoSelectTier();recalc();}
+
+function calcNights(){
+  var ci=document.getElementById('checkin').value,co=document.getElementById('checkout').value;
+  if(!ci||!co){document.getElementById('nights').value='';document.getElementById('nhint').textContent='';return 0;}
+  var d=Math.round((new Date(co)-new Date(ci))/86400000);
+  document.getElementById('nights').value=d>0?d:'';
+  if(d>0){
+    var r=getRateForNights(d);
+    document.getElementById('nhint').textContent=d+' night'+(d!==1?'s':'')+' \u00b7 \u20b1'+r.toLocaleString('en-PH')+'/night \u00b7 \u20b1'+(d*r).toLocaleString('en-PH')+' total';
+    document.getElementById('rbadgeTxt').textContent='\u20b1'+r.toLocaleString('en-PH')+'/night \u00b7 Tier: '+(d===1?'1 night (5%)':d<=4?'2\u20134 nights (8%)':d<=6?'5\u20136 nights (12%)':d<=13?'7\u201313 nights (14%)':d<=27?'14\u201327 nights (16%)':'28+ nights (18%)');
+    document.getElementById('chipMidstay').style.display=d>=5?'':'none';
+  } else {
+    document.getElementById('nhint').textContent='';
+    document.getElementById('rbadgeTxt').textContent='\u20b11,780 / night \u00b7 Cascade Hideaway Studio';
+    document.getElementById('chipMidstay').style.display='none';
+  }
+  return d>0?d:0;
+}
+
+/* ── Items ── */
+function autoFillAccomm(){
+  if(S.type!=='booking'&&S.type!=='extension') return;
+  var n=parseInt(document.getElementById('nights').value)||0;
+  if(!n) return;
+  var tbody=document.getElementById('tbody'),rows=tbody.rows;
+  if(!rows.length){addRow('',1,'');return;}
+  var ins=rows[0].querySelectorAll('input'),desc=ins[0].value.trim().toLowerCase();
+  if(!desc||desc.includes('accommodation')||desc.includes('night')){
+    var r=getRateForNights(n);
+    ins[0].value='Accommodation \u2014 '+n+' night'+(n!==1?'s':'')+' \u00d7 \u20b1'+r.toLocaleString('en-PH')+'/night';
+    ins[1].value=1;ins[2].value=n*r;
+    updateRowAmt(rows[0]);rebuildItems();recalc();
+  }
+}
+
+function addRow(desc,qty,unit){
+  var tr=document.createElement('tr'),tbody=document.getElementById('tbody');
+  tr.innerHTML='<td class="cdesc"><input type="text" placeholder="Description" value="'+esc(desc||'')+'" oninput="onII(this)"></td>'+
+    '<td class="cqty"><input type="number" min="1" value="'+(qty||1)+'" oninput="onII(this)"></td>'+
+    '<td class="cunit"><input type="number" min="0" step="0.01" placeholder="0.00" value="'+(unit!==''&&unit!=null?unit:'')+'" oninput="onII(this)"></td>'+
+    '<td class="camt cella" data-a="0">'+fmtP(0)+'</td>'+
+    '<td class="cdel"><button class="bdel" onclick="delRow(this)">\u00d7</button></td>';
+  tbody.appendChild(tr);
+  if(unit!==''&&unit!=null) updateRowAmt(tr);
+  rebuildItems();recalc();
+  if(!desc) tr.querySelector('input').focus();
+}
+
+function onII(inp){updateRowAmt(inp.closest('tr'));rebuildItems();recalc();}
+
+function updateRowAmt(tr){
+  var ins=tr.querySelectorAll('input');
+  var a=(parseFloat(ins[1].value)||0)*(parseFloat(ins[2].value)||0);
+  var td=tr.querySelector('.cella');td.textContent=fmtP(a);td.dataset.a=a;
+}
+
+function delRow(btn){btn.closest('tr').remove();rebuildItems();recalc();}
+
+function rebuildItems(){
+  var rows=document.getElementById('tbody').rows;S.items=[];
+  for(var i=0;i<rows.length;i++){
+    var ins=rows[i].querySelectorAll('input');
+    var q=parseFloat(ins[1].value)||0,u=parseFloat(ins[2].value)||0;
+    S.items.push({description:ins[0].value.trim(),qty:q,unitPrice:u,amount:q*u});
+  }
+}
+
+/* ── Discount ── */
+function autoSelectTier(){
+  var n=parseInt(document.getElementById('nights').value)||0;
+  var t='';
+  if(n===1) t='short';
+  else if(n<=4) t='ext24';
+  else if(n<=6) t='week56';
+  else if(n<=13) t='weekly';
+  else if(n<=27) t='fortnight';
+  else if(n>=28) t='monthly';
+  if(t){document.getElementById('discType').value=t;onDiscChange();}
+}
+
+function onDiscChange(){
+  var t=document.getElementById('discType').value;
+  var sub=S.items.reduce(function(s,i){return s+i.amount;},0);
+  var lbl=document.getElementById('discLabel'),ci=document.getElementById('discCustom');
+  document.getElementById('custDiscFld').style.display=t==='custom'?'':'none';
+  if(TIERS[t]){lbl.value=TIERS[t].label;ci.value=Math.round(sub*TIERS[t].pct);}
+  if(t===''){lbl.value='';ci.value='';}
+  if(t==='custom'){lbl.value='Special Discount';}
+  recalc();
+}
+
+function getDisc(sub){
+  var t=document.getElementById('discType').value;
+  var cv=parseFloat(document.getElementById('discCustom').value)||0;
+  if(!t) return 0;
+  if(TIERS[t]) return Math.round(sub*TIERS[t].pct);
+  return cv;
+}
+
+function removeDiscount(){
+  document.getElementById('discType').value='';
+  document.getElementById('discLabel').value='';
+  document.getElementById('discCustom').value='';
+  document.getElementById('custDiscFld').style.display='none';
+  recalc();
+}
+
+
+function setDep(el,pct){
+  document.querySelectorAll('.pp').forEach(function(p){p.classList.remove('active')});
+  el.classList.add('active');
+  if(pct==='c'){document.getElementById('amtPaid').value='';document.getElementById('amtPaid').focus();recalc();return;}
+  S._dep=pct;
+  var amt=Math.round((S._tot||0)*pct/100);
+  document.getElementById('amtPaid').value=amt||'';
+  recalc();
+}
+
+function setDepSilent(pct){
+  S._dep=pct;
+  document.querySelectorAll('.pp').forEach(function(p){p.classList.toggle('active',parseInt(p.dataset.pct)===pct)});
+}
+
+function onPaidInp(){
+  document.querySelectorAll('.pp').forEach(function(p){p.classList.remove('active')});
+  recalc();
+}
+
+/* ── Recalc ── */
+function recalc(){
+  rebuildItems();
+  var sub=S.items.reduce(function(s,i){return s+i.amount;},0);
+  var disc=getDisc(sub),tot=Math.max(0,sub-disc);
+  var paid=parseFloat(document.getElementById('amtPaid').value)||0;
+  var due=Math.max(0,tot-paid),n=parseInt(document.getElementById('nights').value)||0;
+  S._sub=sub;S._disc=disc;S._tot=tot;S._paid=paid;S._due=due;
+
+  sh('rsub',disc>0&&sub>0,'flex');if(disc>0&&sub>0) set('vsub',fmtP(sub));
+  sh('rpn',n>0&&(S.type==='booking'||S.type==='extension')&&sub>0,'flex');
+  if(n>0){var r=getRateForNights(n);set('vnm',n);set('vnrate',fmtP(r));set('vnmbk',fmtP(n*r));}
+  sh('rdisc',disc>0,'flex');
+  if(disc>0){set('ldisc',document.getElementById('discLabel').value||'Discount');set('vdisc','\u2212'+fmtP(disc));}
+  set('vtot',fmtP(tot));
+
+  var sp=document.getElementById('spill');
+  if(disc>0){sp.classList.remove('hide');set('samt',fmtP(disc));}else{sp.classList.add('hide');}
+
+  // Payment summary card visibility
+  var hasPay=paid>0&&tot>0;
+  document.getElementById('paycrd').style.display=hasPay?'':'none';
+  sh('mwrap',hasPay,'');
+  if(hasPay){var pct=Math.min(100,Math.round(paid/tot*100));document.getElementById('mfill').style.width=pct+'%';set('mpct',pct+'%');}
+
+  sh('rpaid',paid>0,'flex');
+  if(paid>0){var pm=document.getElementById('payMethod').value;set('lpaid','Amount Paid'+(pm?' ('+pm+')':''));set('vpaid',fmtP(paid));}
+
+  sh('rdue',paid>0,'flex');
+  if(paid>0){
+    if(due<=0){set('ldue','\u2713 Status');set('vdue','Paid in Full');document.getElementById('vdue').style.color='var(--green)';document.getElementById('rdue').className='tr tpaid';}
+    else{set('ldue','Balance Due');set('vdue',fmtP(due));document.getElementById('vdue').style.color='';document.getElementById('rdue').className='tr tdue';}
+  }
+
+  if(S._dep>0&&S._dep!=='c'&&tot>0){
+    var sb=Math.round(tot*S._dep/100),pf=document.getElementById('amtPaid');
+    if(parseFloat(pf.value)!==sb) pf.value=sb;
+  }
+
+  // Show/hide remove discount button
+  var rd=document.getElementById('bdiscRemove');
+  if(rd) rd.style.display=disc>0?'':'none';
+
+  // Keep invoice no display current
+  refreshInvNoDisplay();
+}
+
+/* ── Payload ── */
+function buildPayload(action){
+  recalc();
+  return{action:action,type:S.type,invoiceNo:v('invNo')||undefined,
+    guestName:v('guestName'),guestEmail:v('guestEmail'),guestPhone:v('guestPhone'),
+    checkin:v('checkin'),checkout:v('checkout'),nights:parseInt(v('nights'))||0,
+    items:S.items,subtotal:S._sub,discountLabel:v('discLabel'),discountAmount:S._disc,
+    total:S._tot,amountPaid:S._paid,amountDue:S._due,paymentMethod:v('payMethod'),
+    notes:v('notes'),refundAmount:parseFloat(v('refAmt'))||0,
+    refundReason:v('refReason'),refundMethod:v('refMethod')};
+}
+
+/* ── Validation ── */
+function ok(){
+  var ne=document.getElementById('guestName'),ee=document.getElementById('guestEmail');
+  if(!ne.value.trim()){mkErr(ne,'Guest name required.');openStage(1);return false;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ee.value.trim())){mkErr(ee,'Valid email required.');openStage(1);return false;}
+  recalc();
+  if(S._tot<=0&&S.type!=='refund'){toast('Add at least one priced item.','error');return false;}
+  return true;
+}
+function mkErr(el,msg){el.classList.add('err');toast(msg,'error');el.focus();}
+function clearErr(el){el.classList.remove('err');}
+
+/* ── Preview / Send ── */
+function doPreview(){
+  if(!S.ep){toast('Set the GAS endpoint first.','error');openModal();return;}
+  if(!ok()) return;
+  loading('bprev',true);
+  post(buildPayload('preview')).then(function(d){
+    loading('bprev',false);
+    if(d.result==='success'){renderPrev(d.html);toast('Preview ready \u2014 '+d.invoiceNo,'success');}
+    else toast('Error: '+d.message,'error');
+  }).catch(function(){loading('bprev',false);toast('Network error.','error');});
+}
+
+function renderPrev(html){
+  document.getElementById('pempty').style.display='none';
+  var f=document.getElementById('pframe');f.style.display='block';f.srcdoc=html;
+  showPane('preview',document.querySelectorAll('.ptab')[0]);
+}
+
+function doSend(){
+  if(!S.ep){toast('Set the GAS endpoint first.','error');openModal();return;}
+  if(!ok()) return;
+  if(!confirm('Send invoice to '+v('guestName')+'?')) return;
+  loading('bsend',true);
+  post(buildPayload('send')).then(function(d){
+    loading('bsend',false);
+    if(d.result==='success'){toast('\u2713 Sent \u2014 '+d.invoiceNo,'success');loadLog();}
+    else toast('Error: '+d.message,'error');
+  }).catch(function(){loading('bsend',false);toast('Network error.','error');});
+}
+
+/* ── Log ── */
+function loadLog(){
+  if(!S.ep) return;
+  post({action:'list'}).then(function(d){if(d.result==='success') renderLog(d.invoices);}).catch(function(){});
+}
+
+function renderLog(inv){
+  var lc=document.getElementById('lcards'),le=document.getElementById('lempty');
+  if(!inv||!inv.length){le.style.display='';lc.innerHTML='';return;}
+  le.style.display='none';
+  lc.innerHTML=inv.slice().reverse().map(function(r){
+    var sc=(r.status||'').toLowerCase()==='settled'?'settled':'pending';
+    return '<div class="lcard"><div><div class="lcno">'+esc(r.invoiceNo)+'</div><div class="lcname">'+esc(r.guestName)+'</div><div class="lcmeta">'+esc(r.type)+' \u00b7 '+esc(r.guestEmail)+' \u00b7 '+fmtP(r.total)+'</div></div>'+
+      '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px"><span class="lstat '+sc+'">'+esc(r.status||'Pending')+'</span><button class="brsend" data-no="'+esc(r.invoiceNo)+'" onclick="resend(this.dataset.no)">Resend</button></div></div>';
+  }).join('');
+}
+
+function resend(no){
+  if(!confirm('Resend '+no+'?')) return;
+  post({action:'resend',invoiceNo:no}).then(function(d){
+    if(d.result==='success') toast('\u2713 Resent '+no,'success');
+    else toast('Error: '+d.message,'error');
+  }).catch(function(){toast('Network error.','error');});
+}
+
+/* ── Pane switching ── */
+function showPane(name,btn){
+  document.querySelectorAll('.ptab').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  document.getElementById('pPane').style.display=name==='preview'?'':'none';
+  var lp=document.getElementById('lPane');lp.classList.toggle('vis',name==='log');
+  if(name==='log') loadLog();
+}
+
+/* ── Modal ── */
+function openModal(){
+  document.getElementById('murl').value=S.ep||'';
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(function(){document.getElementById('murl').focus();},100);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');}
+function saveEp(){
+  var url=document.getElementById('murl').value.trim();
+  if(!url){toast('Paste a valid URL.','error');return;}
+  S.ep=url;localStorage.setItem('cas_ep',url);updateEpUI();closeModal();
+  toast('Endpoint saved \u2713','success');loadLog();
+}
+function updateEpUI(){
+  var p=document.getElementById('epPill'),l=document.getElementById('epLabel');
+  if(S.ep){p.classList.add('set');l.textContent='Connected \u2713';}
+  else{p.classList.remove('set');l.textContent='Set GAS Endpoint';}
+}
+document.getElementById('overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+/* ── Network ── */
+function post(payload){
+  return fetch(S.ep,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).then(function(r){return r.json();});
+}
+
+/* ── Toast ── */
+var _tt;
+function toast(msg,type){
+  var el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast '+(type||'')+' show';
+  clearTimeout(_tt);_tt=setTimeout(function(){el.classList.remove('show');},3200);
+}
+
+/* ── Invoice No display ── */
+function genInvNoPreview(){
+  var now=new Date();
+  var y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0'),d=String(now.getDate()).padStart(2,'0');
+  return 'CAS-'+y+m+d+'-###';
+}
+
+function refreshInvNoDisplay(){
+  var manual=document.getElementById('invNo').value.trim();
+  var display=manual||genInvNoPreview();
+  document.getElementById('invnoVal').textContent=display;
+  document.getElementById('invnoClearBtn').style.display=manual?'':'none';
+}
+
+function editInvNo(){
+  var input=document.getElementById('invNo');
+  var display=document.getElementById('invnoDisplay');
+  display.style.display='none';
+  input.style.display='';
+  // Pre-fill with current display value if it's not the preview placeholder
+  if(!input.value){
+    var now=new Date();
+    var y=now.getFullYear(),m=String(now.getMonth()+1).padStart(2,'0'),d=String(now.getDate()).padStart(2,'0');
+    input.placeholder='CAS-'+y+m+d+'-001';
+  }
+  input.focus();
+  input.addEventListener('blur',function onBlur(){
+    input.removeEventListener('blur',onBlur);
+    document.getElementById('invnoDisplay').style.display='';
+    input.style.display='none';
+    refreshInvNoDisplay();
+  },{once:true});
+}
+
+function clearInvNo(){
+  document.getElementById('invNo').value='';
+  refreshInvNoDisplay();
+}
+
+function onInvNoInput(){
+  refreshInvNoDisplay();
+}
+
+
+function v(id){return(document.getElementById(id)||{}).value||'';}
+function fmtP(n){n=parseFloat(n)||0;return '\u20b1'+n.toLocaleString('en-PH',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function fmtDateShort(ds){
+  if(!ds) return '';
+  var p=ds.split('-'),d=new Date(+p[0],+p[1]-1,+p[2]);
+  var m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return m[d.getMonth()]+' '+d.getDate();
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function toD(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function loading(id,on){var b=document.getElementById(id);b.disabled=on;b.classList.toggle('loading',on);}
+function sh(id,show,disp){document.getElementById(id).style.display=show?(disp||'flex'):'none';}
+function set(id,val){var el=document.getElementById(id);if(el) el.textContent=val;}
+</script>
+</body>
+</html>
